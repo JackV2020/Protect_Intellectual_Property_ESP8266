@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    [data-tooltip] {
+        position: relative;
+    }
+
+    [data-tooltip]:before {
+        content: attr(data-tooltip);
+        position: absolute;
+        background: lightyellow;
+        color: red;
+        padding: 0px;
+        border-radius: 5px;
+        opacity: 0.4;
+        transition: opacity 0.3s;
+        white-space: nowrap;
+        top: -5px;
+        left: +10px;
+    }
+
+table {
+    border-collapse: collapse;
+    margin-bottom: 5px;
+    table-layout: fixed; /* Add this line to fix the column widths */
+    width: 950px;
+}
+
+th,
+td {
+    border: 1px solid #ddd;
+    padding: 2px;
+    text-align: left;
+}
+
+th {
+    background-color: #abc;
+}
+
+th:nth-child(1),
+td:nth-child(1)
+ {
+    width: 150px;
+}
+
+th:nth-child(2),
+td:nth-child(2) input[type="text"] {
+    width: 350px;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+    width: 400px;
+}
+
+@media screen and (max-width: 700px) {
+    th:nth-child(1),
+    td:nth-child(1) {
+        width: 100px; /* Adjust the width for column 1 */
+        max-width: 100px; /* Set max-width for column 1 */
+    }
+
+    th:nth-child(2),
+    td:nth-child(2) input[type="text"],
+    th:nth-child(3),
+    td:nth-child(3) {
+        width: 400px; /* Adjust the width for columns 2 and 3 */
+        min-width: 400px; /* Set max-width for columns 2 and 3 */
+    }
+}
+    
+input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 0;
+    overflow-x: auto;
+}
+
+form {
+    max-width: 100%;
+    width: 950px;
+    overflow-y: auto; /* Enable vertical scrolling for the form */
+}
+
+    .button-container button {
+        margin-right: 5px;
+    }
+</style>
+    <script>
+    function sleep(delay) { // delay in milliseconds
+        var start = new Date().getTime();
+        while (new Date().getTime() < start + delay);
+    }
+        // After we are directed back by tool1.php we want to refresh the screen
+        function handlePageShow() {
+            fetchSettingsData();
+            document.title = "Manage Settings";
+        }
+
+        // Add event listener for pageshow
+        window.addEventListener('pageshow', handlePageShow);
+
+        function changeToolTip(button, action, tooltip, color) {
+            var tooltipDiv = document.getElementById("tooltip_div");
+            if (action === "show") {
+                tooltipDiv.style.color = color;
+                tooltipDiv.style.border = "1px solid " + color;
+                tooltipDiv.innerHTML = "<center>" + tooltip + "</center>";
+            }
+            if (action === "hide") {
+                tooltipDiv.style.backgroundColor = 'white';
+                tooltipDiv.style.color = 'white';
+                tooltipDiv.style.border = "1px solid transparent";
+            }
+        }
+
+        function preBackupActions() {
+            alert("Click OK and wait for backup to finish....");
+            document.title = "Backup Running";
+        }
+
+        // Global variable to store the password
+        var passwordValue = '';
+
+        // Build form with checkboxes
+        const form = document.createElement('form');
+        form.action = './tool1.php';
+        form.method = 'POST';
+
+        // Function to fetch requests data and build the form
+        function fetchSettingsData() {
+            // Get password value
+            passwordValue = document.getElementById('password').value;
+            if (passwordValue != '') {
+                var url = './tool1.php?function=getSettings' + '&pwd=' + encodeURIComponent(passwordValue);
+                // AJAX request to getRequests function
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+
+                        // Clear form content before adding new elements
+                        form.innerHTML = '';
+
+                        const table = document.createElement('table');
+                        const headerRow = table.insertRow();
+                        headerRow.innerHTML = '<th title="Setting name">Setting</th><th title="The value of the setting">Value</th><th title="Some info on the setting">...</th>';
+
+                        if (data.length > 0) {
+                            var odd = true;
+                            var oddcolor = "#E3E3E3";
+                            var evencolor = "#E3E3E3";
+                            var tdcolor = "#D3D3D3";
+                            data.forEach(row => {
+                                const newRow = table.insertRow();
+                                if (odd) {
+                                    tdcolor = oddcolor;
+                                } else {
+                                    tdcolor = evencolor;
+                                }
+                                odd = !odd;
+
+                                newRow.innerHTML = `
+                                    <td bgcolor="${tdcolor}" style="border: 1px solid lightgrey">
+                                        <input readonly style="background-color:${tdcolor};border:0;" type="text" name="settings[]" value="${row.setting}">
+                                    </td>
+                                    <td bgcolor="${tdcolor}" data-tooltip="${row.setting.includes('maintenancemode') 
+                                        ? 'Testing ? Select true and backup !!' 
+                                        : row.setting.includes('backup_location')  
+                                        ? 'Changed location ? Cleanup old folder !!' 
+                                        : ''}">
+                                        ${row.value === 'true' || row.value === 'false' ?
+                                            `<select name="values[]">
+                                                <option value="true" ${row.value === 'true' ? 'selected' : ''}>true</option>
+                                                <option value="false" ${row.value === 'false' ? 'selected' : ''}>false</option>
+                                            </select>` :
+                                            row.value === 'tar' || row.value === 'zip' ?
+                                                `<select name="values[]" data-tooltip="Description for values[]">
+                                                    <option value="tar" ${row.value === 'tar' ? 'selected' : ''}>tar</option>
+                                                    <option value="zip" ${row.value === 'zip' ? 'selected' : ''}>zip</option>
+                                                </select>` :
+                                                (row.setting.endsWith("pwd") ?
+                                                    `<div style="display: flex;">
+                                                        <input type="password" name="values[]" value="${row.value}" style="flex: 1; width: 100px;">
+                                                        <button type="button" class="password-toggle-button">👁️</button>
+                                                    </div>` :
+                                                    `<input type="text" name="values[]" value="${row.value}">
+                                                `)
+                                        }
+                                    </td>
+                                    <td bgcolor="${tdcolor}" style="border: 1px solid lightgrey">${row.comment}</td>
+                                `;
+
+                            });
+
+                        }
+
+                        form.appendChild(table);
+
+                        // Add password input and submit buttons
+                        const passwordInput = document.createElement('input');
+                        passwordInput.type = 'hidden'; // Hidden input
+                        passwordInput.name = 'pwd';
+                        passwordInput.value = passwordValue; // Use the stored password value
+                        form.appendChild(passwordInput);
+
+                        // Create a div for the tooltip
+                        const tooltipDiv = document.createElement('div');
+                        tooltipDiv.id = "tooltip_div";
+                        tooltipDiv.style.color = "white";
+                        tooltipDiv.style.width = "900px";
+                        tooltipDiv.innerHTML = "hoi";
+                        // Append the tooltipDiv to the submitButton3
+                        form.appendChild(tooltipDiv);
+
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.display = 'flex';
+                        buttonContainer.style.justifyContent = 'center';
+
+                        const submitButton0 = document.createElement('input');
+                        submitButton0.type = 'submit';
+                        submitButton0.name = 'function';
+                        submitButton0.value = 'Save Settings';
+                        submitButton0.style.backgroundColor = 'pink';
+                        submitButton0.style.color = 'blue';
+                        submitButton0.style.width = '130px';
+                        submitButton0.style.borderRadius = '5px';
+                        buttonContainer.appendChild(submitButton0);
+
+                        submitButton0.addEventListener('mouseover', function () {
+                            changeToolTip(this, "show", "Saves new settings", "red");
+                        });
+
+                        submitButton0.addEventListener('mouseleave', function () {
+                            changeToolTip(this, "hide");
+                        });
+
+                        const submitButton1 = document.createElement('input');
+                        submitButton1.type = 'submit';
+                        submitButton1.name = 'function';
+                        submitButton1.value = 'Backup System';
+                        submitButton1.style.backgroundColor = 'lightgreen';
+                        submitButton1.style.color = 'blue';
+                        submitButton1.style.width = '130px';
+                        submitButton1.style.borderRadius = '5px';
+                        submitButton1.onclick = preBackupActions;
+                        buttonContainer.appendChild(submitButton1);
+
+                        submitButton1.addEventListener('mouseover', function () {
+                            changeToolTip(this, "show", "Backup your system (I lock the database for a moment so no one can write)", "green");
+                        });
+
+                        submitButton1.addEventListener('mouseleave', function () {
+                            changeToolTip(this, "hide");
+                        });
+
+                        form.appendChild(buttonContainer);
+
+                        document.body.appendChild(form);
+
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        }
+    </script>
+
+    <title>Manage Settings</title>
+</head>
+
+<body>
+
+    <h2>Manage Settings</h2>
+
+    <p id="text" style="display:none;color:red">WARNING! Caps lock is ON.</p>
+    <div>
+
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="pwd" size="10" autofocus title='Password lost ? : sqlite3 registrations.db "select * from settings"'>
+
+        <script>
+            var input = document.getElementById("password");
+            var text = document.getElementById("text");
+            input.addEventListener("keyup", function (event) {
+
+                if (event.getModifierState("CapsLock")) {
+                    text.style.display = "block";
+                } else {
+                    text.style.display = "none"
+                }
+            });
+        </script>
+
+        <button id="fetchButton" onclick="offset = 0; fetchSettingsData()">Fetch Settings</button>
+        <script>
+            input.addEventListener("keypress", function (event) {
+                // If the user presses the "Enter" key on the keyboard
+                if (event.key === "Enter") {
+                    // Cancel the default action, if needed
+                    event.preventDefault();
+                    // Trigger the button element with a click
+                    document.getElementById("fetchButton").click();
+                }
+            });
+        </script>
+    </div>
+
+    <script>
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('.password-toggle-button');
+            if (button) {
+                var inputField = button.parentElement.querySelector('input[type="password"]');
+                if (inputField) {
+                    inputField.type = 'text';
+                } else {
+                    inputField = button.parentElement.querySelector('input[type="text"]');
+                    inputField.type = 'password';
+                }
+            }
+        });
+    </script>
+
+</body>
+
+</html>

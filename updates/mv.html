@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 2px;
+            text-align: left;
+        }
+        th {
+            background-color: #abc;
+        }
+        th:nth-child(2), td:nth-child(2) input[type="text"] {
+            width: 200px;
+        }
+        th:nth-child(3), td:nth-child(3) input[type="text"] {
+            width: 500px;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        form {
+            margin: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .button-container button {
+            margin-right: 5px;
+        }
+    </style>
+    <script>
+
+// Add this function to handle input changes
+function handleInputChange(inputField) {
+    // Find the checkbox in the same row
+    var checkbox = inputField.parentNode.parentNode.querySelector('input[type="checkbox"]');
+    
+    // Check the checkbox when either input field changes
+    if (checkbox) {
+        checkbox.checked = true;
+    }
+}
+
+
+// After we are directed back by tool1.php we want to refresh the screen
+    function handlePageShow() {
+//        document.getElementById('nr_rows').selectedIndex = 3;
+//        document.getElementById('status').selectedIndex = 0;
+//        document.getElementById('filter').selectedIndex = 0;
+//        document.getElementById('reverse').selectedIndex = 0;
+        fetchVersionsData()
+    }
+    // Add event listener for pageshow
+    window.addEventListener('pageshow', handlePageShow);
+
+    function sleep(delay) { // delay in milliseconds
+        var start = new Date().getTime();
+        while (new Date().getTime() < start + delay);
+    }
+
+    function changeToolTip(button, action, tooltip, color) {
+        var tooltipDiv = document.getElementById("tooltip_div");
+        if (action === "show") {
+//          tooltipDiv.style.backgroundColor = 'blue';
+            tooltipDiv.style.color = color;
+//          tooltipDiv.style.borderColor = 'yellow';
+            tooltipDiv.style.border = "1px solid "+color;
+            tooltipDiv.innerHTML = "<center>"+tooltip+"</center>";
+        }
+        if (action === "hide") {
+//            alert("hi");
+            tooltipDiv.style.backgroundColor = 'white';
+            tooltipDiv.style.color = 'white';
+            tooltipDiv.style.border = "1px solid transparent";
+//          tooltipDiv.style.borderColor = 'yellow';
+//          tooltipDiv.innerHTML = "   ";
+        }      
+    }
+    </script>
+    <title>Manage Versions</title>
+</head>
+<body>
+
+<h2>Manage Versions</h2>
+
+<p id="text" style="display:none;color:red">WARNING! Caps lock is ON.</p>
+<div>
+
+    <label for="nr_rows">Rows</label>
+    <select name="nr_rows" id="nr_rows" onchange="addjustRows(parseInt(this.value));">
+        <option value=5 >5</option>
+        <option value=10>10</option>
+        <option value=15>15</option>
+        <option value=20 selected>20</option>
+        <option value=25>25</option>
+        <option value=50>50</option>
+        <option value=100>100</option>
+    </select>
+
+    <script>
+        function addjustRows(new_nr_records_to_show) {
+            let oldpagenumber = pagenumber;
+            pagenumber  = Math.floor(nr_records_to_show * (pagenumber - 1) / new_nr_records_to_show) + 1;
+            nr_records_to_show = new_nr_records_to_show ;
+            offset = (pagenumber - 1 ) * nr_records_to_show;
+            fetchVersionsData();
+        }
+    </script>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="pwd" size="10" autofocus title='Password lost ? : sqlite3 registrations.db "select * from settings"'>
+
+    <script>
+    var input = document.getElementById("password");
+    var text = document.getElementById("text");
+    input.addEventListener("keyup", function(event) {
+
+    if (event.getModifierState("CapsLock")) {
+        text.style.display = "block";
+      } else {
+        text.style.display = "none"
+      }
+    });
+    </script>
+
+    <button id="fetchButton" onclick="offset = 0; fetchVersionsData()">Fetch Versions</button>
+    <script>
+      input.addEventListener("keypress", function(event) {
+        // If the user presses the "Enter" key on the keyboard
+        if (event.key === "Enter") {
+          // Cancel the default action, if needed
+          event.preventDefault();
+          // Trigger the button element with a click
+          document.getElementById("fetchButton").click();
+        }
+      });
+    </script>
+
+    <label for="filter">Filter on field:</label>
+    <select name="filter" id="filter" onchange="fetchVersionsData()">
+        <option value="None" selected>---</option>
+        <option value="appname">App Name</option>
+        <option value="notes">Notes</option>
+        <option value="date">Date</option>
+        <option value="md5">MD5</option>
+    </select>
+
+    <label for="reverse">which</label>
+    <select name="reverse" id="reverse" style="background-color:lightgreen"  onchange="updateReverseColor(); fetchVersionsData()">
+        <option value="No" selected>does</option>
+        <option value="Yes">does not</option>
+    </select>
+    <script>
+        function updateReverseColor() {
+          var colorSelect = document.getElementById("reverse");
+          if (colorSelect.selectedIndex == 0) { colorSelect.style.backgroundColor = "lightgreen" }
+          else { colorSelect.style.backgroundColor = "pink" }
+        }
+    </script>
+
+    <label for="filterValue">contain:</label>
+    <input type="text" name="filterValue" id="filterValue" onchange="fetchVersionsData()">
+
+    <label for="orderby">sort by:</label>
+    <select name="orderby" id="orderby" onchange="fetchVersionsData()">
+        <option value="appname" selected>App Name</option>
+        <option value="notes">Notes</option>
+        <option value="date">Date</option>
+        <option value="md5">MD5</option>
+    </select>
+
+    <label for="order">order:</label>
+    <select name="order" id="order" onchange="fetchVersionsData()">
+        <option value="asc" selected>A..Z</option>
+        <option value="desc">Z..A</option>
+    </select>
+
+</div>
+
+<script>
+    // Global variable to store the password
+    var passwordValue = '';
+
+    function checkAll() {
+        var checkAllCheckbox = document.getElementById("checkAll");
+        var recordCheckboxes = document.getElementsByName("selectedRows[]");
+
+        for (var i = 0; i < recordCheckboxes.length; i++) {
+            recordCheckboxes[i].checked = checkAllCheckbox.checked;
+        }
+    }
+
+    let offset = 0;
+    let pagenumber = 1;
+    let previouspage = 1;
+    var nr_records_to_show = 20;
+
+    // Build form with checkboxes
+    const form = document.createElement('form');
+    form.action = './tool1.php';
+    form.method = 'POST';
+
+    // Function to fetch requests data and build the form
+    function fetchVersionsData() {
+        // Get password value
+      passwordValue = document.getElementById('password').value;
+      if (passwordValue != '' ) {
+        filter = document.getElementById('filter').value;
+        filterValue = document.getElementById('filterValue').value;
+        reverse = document.getElementById('reverse').value;
+        orderbyValue = document.getElementById('orderby').value;
+        orderValue = document.getElementById('order').value;
+        var url = './tool1.php?function=getVersions'
+            + '&pwd=' + encodeURIComponent(passwordValue)
+            + '&filter=' + encodeURIComponent(filter)
+            + '&reverse=' + encodeURIComponent(reverse)
+            + '&filterValue=' + encodeURIComponent(filterValue)
+            + '&orderby=' + encodeURIComponent(orderbyValue)
+            + '&order=' + encodeURIComponent(orderValue)
+            + '&offset=' + offset 
+            + '&count=' + nr_records_to_show ;
+        // AJAX request to getRequests function
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+
+                // Clear form content before adding new elements
+                form.innerHTML = '';
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+
+                const prev10Button = document.createElement('button');
+                prev10Button.type = 'button';
+                prev10Button.name = 'prev10';
+                prev10Button.textContent = '10 Back';
+                prev10Button.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber -=10;
+                    if (pagenumber < 1) {
+                        pagenumber = 1;
+                    }
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchVersionsData();
+                });
+                if (offset === 0) { prev10Button.disabled = true; }
+                buttonContainer.appendChild(prev10Button);
+
+                const prevButton = document.createElement('button');
+                prevButton.type = 'button';
+                prevButton.name = 'prev';
+                prevButton.textContent = 'Prev';
+                prevButton.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber -=1;
+                    if (pagenumber < 1) {
+                        pagenumber = 1;
+                    }
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchVersionsData();
+                });
+                if (offset === 0) { prevButton.disabled = true; }
+                buttonContainer.appendChild(prevButton);
+
+                const pageNumber = document.createElement('button');
+                pageNumber.type = 'button';
+                pageNumber.name = 'pageNumber';
+                pageNumber.textContent = pagenumber ;
+                buttonContainer.appendChild(pageNumber);
+
+                const nextButton = document.createElement('button');
+                nextButton.type = 'button';
+                nextButton.name = 'next';
+                nextButton.textContent = 'Next';
+                nextButton.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber +=1;
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchVersionsData();
+                });
+                if (data.length === 0) { nextButton.disabled = true; }
+                buttonContainer.appendChild(nextButton);
+
+
+                const next10Button = document.createElement('button');
+                next10Button.type = 'button';
+                next10Button.name = 'next10';
+                next10Button.textContent = '10 Forward';
+                next10Button.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber +=10;
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchVersionsData();
+                });
+                if (data.length === 0) { next10Button.disabled = true; }
+                buttonContainer.appendChild(next10Button);
+
+                form.appendChild(buttonContainer);
+
+                const table = document.createElement('table');
+                const headerRow = table.insertRow();
+                headerRow.innerHTML = '<th title="Tick the boxes to select">Select</th><th style="background:pink;" title="Renamed bin files? Enable app_renaming on ms.html">App Name</th><th title="Additional notes like full or limited and version">Notes</th><th title="Limit mode true ? Only accepted runs full mode">Limit Mode</th><th title="The date the version was inserted">Date</th><th title="The md5">MD5</th>';
+
+                if (data.length > 0) {
+                    var odd = true;
+                    var oddcolor = "white";
+                    var evencolor = "#E3E3E3";
+                    var tdcolor = "#D3D3D3";
+                    data.forEach(row => {
+                        const newRow = table.insertRow();
+                        if ( odd ) {tdcolor = oddcolor} else {tdcolor = evencolor} 
+                        odd = ! odd;
+                        newRow.innerHTML = `<td bgcolor="${tdcolor}"><input type="checkbox" name="selectedRows[]" value="${row.md5}"></td>
+
+                            ${row.app_renaming === 1 
+                            ? `<td bgcolor="${tdcolor}"><input type="text" name="newappnames[]" value="${row.appname}" onchange="handleInputChange(this)"></td>`
+                            : `<td bgcolor="${tdcolor}">${row.appname}</td>` }
+
+                            <td bgcolor="${tdcolor}"><input type="text" name="newnotes[]" value="${row.notes}" onchange="handleInputChange(this)"></td>
+
+                            <td bgcolor="${tdcolor}">
+                                <select name="newlimit_modes[]" onchange="handleInputChange(this)">
+                                    <option value="limited_run" ${row.limit_mode === 'limited_run' ? 'selected' : ''}>limited run</option>
+                                    <option value="full_run"    ${row.limit_mode === 'full_run'    ? 'selected' : ''}>full run</option>
+                                    <option value="full_update" ${row.limit_mode === 'full_update' ? 'selected' : ''}>full + update</option>
+                                </select>
+                            </td>
+
+                            <td bgcolor="${tdcolor}">${row.date}</td>
+                            <td bgcolor="${tdcolor}">${row.md5}</td>
+
+                            <input type="hidden" name="md5s[]" value="${row.md5}">
+                            
+                            ${row.app_renaming != 1 
+                            ? `<input type="hidden" name="newappnames[]" value="${row.appname}" onchange="handleInputChange(this)">`
+                            : `` }
+                            
+                            `;
+
+
+
+                    });
+/*
+                            <td bgcolor="${tdcolor}">${row.appname}</td>
+                            <input type="hidden" name="newappnames[]" value="${row.appname}" onchange="handleInputChange(this)">
+or
+                            <td bgcolor="${tdcolor}"><input type="text" name="newappnames[]" value="${row.appname}" onchange="handleInputChange(this)"></td>
+*/                    
+                    // "Check All" checkbox at the bottom
+                    const checkAllRow = table.insertRow();
+                    const checkAllCell = checkAllRow.insertCell();
+                    const checkAllCheckbox = document.createElement('input');
+                    checkAllCheckbox.type = 'checkbox';
+                    checkAllCheckbox.id = 'checkAll';
+
+                    // Event delegation for "Check All" checkbox
+                    checkAllCheckbox.addEventListener('click', checkAll);
+                    checkAllCell.appendChild(checkAllCheckbox);
+
+                    // Create a text node for "Check All" and append it to the cell
+                    const checkAllText = document.createTextNode('Check/Uncheck All');
+                    checkAllCell.appendChild(checkAllText);
+
+                    checkAllCell.colSpan = 5;
+
+                } else {
+                    const noRecordsRow = table.insertRow();
+                    const noRecordsCell = noRecordsRow.insertCell();
+                    noRecordsCell.colSpan = 5;
+                    if (pagenumber == 1 ) {
+                        noRecordsCell.textContent = 'No records to display at all.';
+                    } else { 
+                        noRecordsCell.textContent = 'No records to display. Please wait while I am looking for the last page.';
+                        sleep(1000);
+                        pagenumber -= 1;
+                        offset = (pagenumber - 1 ) * nr_records_to_show;
+                        fetchVersionsData()
+                    }
+                }
+
+                form.appendChild(table);
+
+                // Add password input and submit buttons
+                const passwordInput = document.createElement('input');
+                passwordInput.type = 'hidden'; // Hidden input
+                passwordInput.name = 'pwd';
+                passwordInput.value = passwordValue; // Use the stored password value
+                form.appendChild(passwordInput);
+
+                // Create a div for the tooltip
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.id = "tooltip_div";
+                tooltipDiv.style.color = "white";
+                tooltipDiv.style.width = "800px";
+                tooltipDiv.innerHTML = "hoi";
+                // Append the tooltipDiv to the submitButton3
+                form.appendChild(tooltipDiv);
+
+                const submitButton0 = document.createElement('input');
+                submitButton0.type = 'submit';
+                submitButton0.name = 'function';
+                submitButton0.value = 'Update Versions';
+                submitButton0.style.backgroundColor = 'pink';
+                submitButton0.style.color = 'blue';
+                submitButton0.style.width = "130px";
+                submitButton0.style.borderRadius = '5px';
+                form.appendChild(submitButton0);
+
+                // Attach the event listener to call the desired function
+                submitButton0.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Saves changed notes to the selected versions", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton0.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                const submitButton = document.createElement('input');
+                submitButton.type = 'submit';
+                submitButton.name = 'function';
+                submitButton.value = 'Import Versions';
+                submitButton.style.backgroundColor = 'lightgreen';
+                submitButton.style.color = 'blue';
+                submitButton.style.width = "130px";
+                submitButton.style.borderRadius = '5px';
+                form.appendChild(submitButton);
+
+                // Attach the event listener to call the desired function
+                submitButton.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Creates new version rows for new bin files", "green");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+
+
+                const submitButton1 = document.createElement('input');
+                submitButton1.type = 'submit';
+                submitButton1.name = 'function';
+                submitButton1.disabled = true;
+                submitButton1.id = 'deleteversions';
+                submitButton1.value = 'Delete Versions';
+                submitButton1.style.backgroundColor = 'pink';
+                submitButton1.style.width = "130px";
+                submitButton1.style.color = 'blue';
+                submitButton1.style.borderRadius = '5px';
+                submitButton1.style.margin = "10px";
+                submitButton1.style.border = "2px solid red";
+                form.appendChild(submitButton1);
+
+                // Attach the event listener to call the desired function
+                submitButton1.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Remove the selected entries from the database", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton1.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                const toggleDeleteVersions = document.createElement('input');
+                toggleDeleteVersions.type = 'checkbox';
+                toggleDeleteVersions.name = 'toggleDeleteVersions';
+                toggleDeleteVersions.id = 'toggleDeleteVersions';
+                // Attach the event listener to call the desired function
+                toggleDeleteVersions.addEventListener('click', function() {
+                    var toggleCheckbox = document.getElementById("toggleDeleteVersions");
+                    var btn = document.getElementById("deleteversions");
+                    btn.disabled = ! toggleCheckbox.checked;
+                });
+                form.appendChild(toggleDeleteVersions);
+
+                const label = document.createElement('label');
+                label.innerHTML = "Check to enable 'Delete Versions'";
+                label.setAttribute('for', 'toggleDeleteVersions');
+                form.appendChild(label);
+
+
+
+
+
+
+
+
+                document.body.appendChild(form);
+
+                // Event delegation for "Check All" checkbox
+                checkAllCheckbox.addEventListener('click', checkAll);
+            })
+            .catch(error => console.error('Error:', error));
+      }
+    }
+
+    // Call the function when the page loads
+//    window.onload = fetchVersionsData;
+</script>
+
+</body>
+</html>

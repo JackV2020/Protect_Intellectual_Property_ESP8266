@@ -1,0 +1,11 @@
+As the name of this file says, do not delete or overwrite files.
+
+When you want to place a new version :
+
+- Add the version number to the end of the file name of the old file
+
+- Move that file to the oldbins folder
+
+- Copy the new bin file into the bins folder
+
+- Start mv.html and click 'Import Versions'

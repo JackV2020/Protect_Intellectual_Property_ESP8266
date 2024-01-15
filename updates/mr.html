@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 2px;
+            text-align: left;
+        }
+        th {
+            background-color: #abc;
+        }
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+        form {
+            margin: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 10px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: flex-start;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        .button-container button {
+            margin-right: 5px;
+        }
+    </style>
+    <script>
+
+// Add this function to handle input changes
+function handleInputChange(inputField) {
+    // Find the checkbox in the same row
+    var checkbox = inputField.parentNode.parentNode.querySelector('input[type="checkbox"]');
+    
+    // Check the checkbox when either input field changes
+    if (checkbox) {
+        checkbox.checked = true;
+    }
+}
+
+// After we are directed back by tool1.php we want to refresh the screen
+    function handlePageShow() {
+//        document.getElementById('nr_rows').selectedIndex = 3;
+//        document.getElementById('status').selectedIndex = 0;
+//        document.getElementById('filter').selectedIndex = 0;
+//        document.getElementById('reverse').selectedIndex = 0;
+        fetchRequestsData()
+    }
+    // Add event listener for pageshow
+    window.addEventListener('pageshow', handlePageShow);
+
+    function sleep(delay) { // delay in milliseconds
+        var start = new Date().getTime();
+        while (new Date().getTime() < start + delay);
+    }
+
+    function changeToolTip(button, action, tooltip, color) {
+        var tooltipDiv = document.getElementById("tooltip_div");
+        if (action === "show") {
+//          tooltipDiv.style.backgroundColor = 'blue';
+            tooltipDiv.style.color = color;
+//          tooltipDiv.style.borderColor = 'yellow';
+            tooltipDiv.style.border = "1px solid "+color;
+            tooltipDiv.innerHTML = "<center>"+tooltip+"</center>";
+        }
+        if (action === "hide") {
+//            alert("hi");
+            tooltipDiv.style.backgroundColor = 'white';
+            tooltipDiv.style.color = 'white';
+            tooltipDiv.style.border = "1px solid transparent";
+//          tooltipDiv.style.borderColor = 'yellow';
+//          tooltipDiv.innerHTML = "   ";
+        }      
+    }
+    </script>
+    <title>Manage Requests</title>
+</head>
+<body>
+
+<h2>Manage Requests</h2>
+
+<p id="text" style="display:none;color:red">WARNING! Caps lock is ON.</p>
+<div>
+
+    <label for="nr_rows">Rows</label>
+    <select name="nr_rows" id="nr_rows" onchange="addjustRows(parseInt(this.value));">
+        <option value=5 >5</option>
+        <option value=10>10</option>
+        <option value=15>15</option>
+        <option value=20 selected>20</option>
+        <option value=25>25</option>
+        <option value=50>50</option>
+        <option value=100>100</option>
+    </select>
+
+    <script>
+        function addjustRows(new_nr_records_to_show) {
+            let oldpagenumber = pagenumber;
+            pagenumber  = Math.floor(nr_records_to_show * (pagenumber - 1) / new_nr_records_to_show) + 1;
+            nr_records_to_show = new_nr_records_to_show ;
+            offset = (pagenumber - 1 ) * nr_records_to_show;
+            fetchRequestsData();
+        }
+    </script>
+    <label for="status">Status</label>
+    <select name="status" id="status" style="background-color:lightgrey" onchange="updateStatusChange()">
+        <option value="any" selected>Any</option>
+        <option value="registered">Registered</option>
+        <option value="accepted">Accepted</option>
+        <option value="blocked">Blocked</option>
+    </select>
+    <script>
+        function updateStatusChange() {
+          var colorSelect = document.getElementById("status");
+          if (colorSelect.selectedIndex == 0) { colorSelect.style.backgroundColor = "lightgrey" }
+          if (colorSelect.selectedIndex == 1) { colorSelect.style.backgroundColor = "yellow" }
+          if (colorSelect.selectedIndex == 2) { colorSelect.style.backgroundColor = "lightgreen" }
+          if (colorSelect.selectedIndex == 3) { colorSelect.style.backgroundColor = "pink" }
+          pagenumber = 1;
+          offset = (pagenumber - 1 ) * nr_records_to_show;
+          fetchRequestsData();
+        }
+    </script>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="pwd" size="10" autofocus title='Password lost ? : sqlite3 registrations.db "select * from settings"'>
+
+    <script>
+    var input = document.getElementById("password");
+    var text = document.getElementById("text");
+    input.addEventListener("keyup", function(event) {
+
+    if (event.getModifierState("CapsLock")) {
+        text.style.display = "block";
+      } else {
+        text.style.display = "none"
+      }
+    });
+    </script>
+
+    <button id="fetchButton" onclick="offset = 0; fetchRequestsData()">Fetch Requests</button>
+    <script>
+      input.addEventListener("keypress", function(event) {
+        // If the user presses the "Enter" key on the keyboard
+        if (event.key === "Enter") {
+          // Cancel the default action, if needed
+          event.preventDefault();
+          // Trigger the button element with a click
+          document.getElementById("fetchButton").click();
+        }
+      });
+    </script>
+
+    <label for="filter">Filter on field:</label>
+    <select name="filter" id="filter" onchange="fetchRequestsData()">
+        <option value="None" selected>---</option>
+        <option value="email">Email</option>
+        <option value="mailondownload">MailOnDownload</option>
+        <option value="supplier">Supplier</option>
+        <option value="mac">MAC</option>
+        <option value="publicip">Public IP</option>
+        <option value="appname">App Name</option>
+        <option value="date">Date</option>
+        <option value="key">Key</option>
+        <option value="status">Status</option>
+        <option value="notes">Notes</option>
+    </select>
+
+    <label for="reverse">which</label>
+    <select name="reverse" id="reverse" style="background-color:lightgreen"  onchange="updateReverseColor(); fetchRequestsData()">
+        <option value="No" selected>does</option>
+        <option value="Yes">does not</option>
+    </select>
+    <script>
+        function updateReverseColor() {
+          var colorSelect = document.getElementById("reverse");
+          if (colorSelect.selectedIndex == 0) { colorSelect.style.backgroundColor = "lightgreen" }
+          else { colorSelect.style.backgroundColor = "pink" }
+        }
+    </script>
+
+    <label for="filterValue">contain:</label>
+    <input type="text" name="filterValue" id="filterValue" onchange="fetchRequestsData()">
+
+    <label for="orderby">sort by:</label>
+    <select name="orderby" id="orderby" onchange="fetchRequestsData()">
+        <option value="email">Email</option>
+        <option value="mailondownload">MailOnDownload</option>
+        <option value="supplier">Supplier</option>
+        <option value="mac">MAC</option>
+        <option value="publicip">Public IP</option>
+        <option value="appname">App Name</option>
+        <option value="date" selected>Date</option>
+        <option value="key">Key</option>
+        <option value="status">Status</option>
+        <option value="notes">Notes</option>
+    </select>
+
+    <label for="order">order:</label>
+    <select name="order" id="order" onchange="fetchRequestsData()">
+        <option value="asc">A..Z</option>
+        <option value="desc" selected>Z..A</option>
+    </select>
+
+</div>
+
+<script>
+    // Global variable to store the password
+    var passwordValue = '';
+
+    function checkAll() {
+        var checkAllCheckbox = document.getElementById("checkAll");
+        var recordCheckboxes = document.getElementsByName("selectedRows[]");
+
+        for (var i = 0; i < recordCheckboxes.length; i++) {
+            recordCheckboxes[i].checked = checkAllCheckbox.checked;
+        }
+    }
+
+    let offset = 0;
+    let pagenumber = 1;
+    let previouspage = 1;
+    var nr_records_to_show = 20;
+
+    // Build form with checkboxes
+    const form = document.createElement('form');
+    form.action = './tool1.php';
+    form.method = 'POST';
+
+    // Function to fetch requests data and build the form
+    function fetchRequestsData() {
+        // Get password value
+      passwordValue = document.getElementById('password').value;
+      if (passwordValue != '' ) {
+        filter = document.getElementById('filter').value;
+        filterValue = document.getElementById('filterValue').value;
+        status = document.getElementById('status').value;
+        reverse = document.getElementById('reverse').value;
+        orderbyValue = document.getElementById('orderby').value;
+        orderValue = document.getElementById('order').value;
+        var url = './tool1.php?function=getRequests'
+            + '&pwd=' + encodeURIComponent(passwordValue)
+            + '&status=' + encodeURIComponent(status)
+            + '&filter=' + encodeURIComponent(filter)
+            + '&reverse=' + encodeURIComponent(reverse)
+            + '&filterValue=' + encodeURIComponent(filterValue)
+            + '&orderby=' + encodeURIComponent(orderbyValue)
+            + '&order=' + encodeURIComponent(orderValue)
+            + '&offset=' + offset 
+            + '&count=' + nr_records_to_show ;
+        // AJAX request to getRequests function
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+
+                // Clear form content before adding new elements
+                form.innerHTML = '';
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+
+                const prev10Button = document.createElement('button');
+                prev10Button.type = 'button';
+                prev10Button.name = 'prev10';
+                prev10Button.textContent = '10 Back';
+                prev10Button.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber -=10;
+                    if (pagenumber < 1) {
+                        pagenumber = 1;
+                    }
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchRequestsData();
+                });
+                if (offset === 0) { prev10Button.disabled = true; }
+                buttonContainer.appendChild(prev10Button);
+
+                const prevButton = document.createElement('button');
+                prevButton.type = 'button';
+                prevButton.name = 'prev';
+                prevButton.textContent = 'Prev';
+                prevButton.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber -=1;
+                    if (pagenumber < 1) {
+                        pagenumber = 1;
+                    }
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchRequestsData();
+                });
+                if (offset === 0) { prevButton.disabled = true; }
+                buttonContainer.appendChild(prevButton);
+
+                const pageNumber = document.createElement('button');
+                pageNumber.type = 'button';
+                pageNumber.name = 'pageNumber';
+                pageNumber.textContent = pagenumber ;
+                buttonContainer.appendChild(pageNumber);
+
+                const nextButton = document.createElement('button');
+                nextButton.type = 'button';
+                nextButton.name = 'next';
+                nextButton.textContent = 'Next';
+                nextButton.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber +=1;
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchRequestsData();
+                });
+                if (data.length === 0) { nextButton.disabled = true; }
+                buttonContainer.appendChild(nextButton);
+
+
+                const next10Button = document.createElement('button');
+                next10Button.type = 'button';
+                next10Button.name = 'next10';
+                next10Button.textContent = '10 Forward';
+                next10Button.addEventListener('click', () => {
+                    previouspage = pagenumber;
+                    pagenumber +=10;
+                    offset = (pagenumber - 1 ) * nr_records_to_show;
+                    fetchRequestsData();
+                });
+                if (data.length === 0) { next10Button.disabled = true; }
+                buttonContainer.appendChild(next10Button);
+
+                form.appendChild(buttonContainer);
+
+                const table = document.createElement('table');
+                const headerRow = table.insertRow();
+                headerRow.innerHTML = '<th title="Tick the boxes to select">Select</th><th title="The user mail address">Email</th><th title="Mail on download is enabled when tool1.php is configured and this ends with ok">MailOnDownload</th><th title="User can enter supplier once">Supplier</th><th title="The MAC address of the device">MAC</th><th title="The public IP">Public IP</th><th title="You can have more apps in this tool">App Name</th><th title="Date of last update by user">Date</th><th title="The user needs this key to update his email address">Key</th><th title="Only status accepted allows downloads">Status</th><th title="Notes you want to keep">Notes</th>';
+
+                if (data.length > 0) {
+                    var odd = true;
+                    var oddcolor = "white";
+                    var evencolor = "#E3E3E3";
+                    var tdcolor = "#D3D3D3";
+                    data.forEach(row => {
+                        const newRow = table.insertRow();
+                        if ( odd ) {tdcolor = oddcolor} else {tdcolor = evencolor} 
+                        odd = ! odd;
+                        newRow.innerHTML = `<td bgcolor="`+tdcolor+`"><input type="checkbox" name="selectedRows[]" value="${row.mac}"></td>
+                                            <td bgcolor="`+tdcolor+`">${row.email}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.mailondownload}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.supplier}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.mac}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.publicip}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.appname}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.date}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.key}</td>
+                                            <td bgcolor="`+tdcolor+`">${row.status}</td>
+                                            <td bgcolor="${tdcolor}"><input type="text" name="newnotes[]" value="${row.notes}" onchange="handleInputChange(this)"></td>
+                                            <input hidden type="text" name="macs[]" value="${row.mac}">
+`;
+                    });
+                    
+                    // "Check All" checkbox at the bottom
+                    const checkAllRow = table.insertRow();
+                    const checkAllCell = checkAllRow.insertCell();
+                    const checkAllCheckbox = document.createElement('input');
+                    checkAllCheckbox.type = 'checkbox';
+                    checkAllCheckbox.id = 'checkAll';
+
+                    // Event delegation for "Check All" checkbox
+                    checkAllCheckbox.addEventListener('click', checkAll);
+                    checkAllCell.appendChild(checkAllCheckbox);
+
+                    // Create a text node for "Check All" and append it to the cell
+                    const checkAllText = document.createTextNode('Check/Uncheck All');
+                    checkAllCell.appendChild(checkAllText);
+
+                    checkAllCell.colSpan = 11;
+
+                } else {
+                    const noRecordsRow = table.insertRow();
+                    const noRecordsCell = noRecordsRow.insertCell();
+                    noRecordsCell.colSpan = 11;
+                    if (pagenumber == 1 ) {
+                        noRecordsCell.textContent = 'No records to display at all.';
+                    } else { 
+                        noRecordsCell.textContent = 'No records to display. Please wait while I am looking for the last page.';
+                        sleep(1000);
+                        pagenumber -= 1;
+                        offset = (pagenumber - 1 ) * nr_records_to_show;
+                        fetchRequestsData()
+                    }
+                }
+
+                form.appendChild(table);
+
+                // Add password input and submit buttons
+                const passwordInput = document.createElement('input');
+                passwordInput.type = 'hidden'; // Hidden input
+                passwordInput.name = 'pwd';
+                passwordInput.value = passwordValue; // Use the stored password value
+                form.appendChild(passwordInput);
+
+                // Create a div for the tooltip
+                const tooltipDiv = document.createElement('div');
+                tooltipDiv.id = "tooltip_div";
+                tooltipDiv.style.color = "white";
+                tooltipDiv.style.width = "800px";
+                tooltipDiv.innerHTML = "hoi";
+                // Append the tooltipDiv to the submitButton3
+                form.appendChild(tooltipDiv);
+
+                const submitButton0 = document.createElement('input');
+                submitButton0.type = 'submit';
+                submitButton0.name = 'function';
+                submitButton0.value = 'Register Selected';
+                submitButton0.style.backgroundColor = 'pink';
+                submitButton0.style.color = 'blue';
+                submitButton0.style.width = "130px";
+                submitButton0.style.borderRadius = '5px';
+                form.appendChild(submitButton0);
+
+                // Attach the event listener to call the desired function
+                submitButton0.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Move entries back to registered so they get limited version", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton0.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                const submitButton = document.createElement('input');
+                submitButton.type = 'submit';
+                submitButton.name = 'function';
+                submitButton.value = 'Accept Selected';
+                submitButton.style.backgroundColor = 'lightgreen';
+                submitButton.style.color = 'blue';
+                submitButton.style.width = "130px";
+                submitButton.style.borderRadius = '5px';
+                form.appendChild(submitButton);
+
+                // Attach the event listener to call the desired function
+                submitButton.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Accepts selected entries so they get full version", "green");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                const submitButton2 = document.createElement('input');
+                submitButton2.type = 'submit';
+                submitButton2.name = 'function';
+                submitButton2.value = 'Block Selected';
+                submitButton2.style.backgroundColor = 'pink';
+                submitButton2.style.color = 'blue';
+                submitButton2.style.width = "130px";
+                submitButton2.style.borderRadius = '5px';
+                form.appendChild(submitButton2);
+
+                // Attach the event listener to call the desired function
+                submitButton2.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Blocks selected entries so they get limited version", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton2.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+
+                const submitButton4 = document.createElement('input');
+                submitButton4.type = 'submit';
+                submitButton4.name = 'function';
+                submitButton4.value = 'Stop Mail';
+                submitButton4.style.backgroundColor = 'pink';
+                submitButton4.style.width = "130px";
+                submitButton4.style.color = 'blue';
+                submitButton4.style.borderRadius = '5px';
+
+                // Attach the event listener to call the desired function
+                submitButton4.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Stops download mail for selected entries", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton4.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                form.appendChild(submitButton4);
+
+                const submitButton5 = document.createElement('input');
+                submitButton5.type = 'submit';
+                submitButton5.name = 'function';
+                submitButton5.value = 'UnStop Mail';
+                submitButton5.style.backgroundColor = 'pink';
+                submitButton5.style.width = "130px";
+                submitButton5.style.color = 'blue';
+                submitButton5.style.borderRadius = '5px';
+
+                // Attach the event listener to call the desired function
+                submitButton5.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Enables download mail for selected entries", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton5.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                form.appendChild(submitButton5);
+
+                const submitButton3 = document.createElement('input');
+                submitButton3.type = 'submit';
+                submitButton3.name = 'function';
+                submitButton3.disabled = true;
+                submitButton3.id = 'deleteblocked';
+                submitButton3.value = 'Delete Blocked';
+                submitButton3.style.backgroundColor = 'pink';
+                submitButton3.style.color = 'blue';
+                submitButton3.style.width = "130px";
+                submitButton3.style.borderRadius = '5px';
+                submitButton3.style.margin = "10px";
+                submitButton3.style.border = "2px solid red";
+
+                // Attach the event listener to call the desired function
+                submitButton3.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Deletes selected 'blocked' entries from database", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton3.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                form.appendChild(submitButton3);
+
+                const toggleDeleteBlocked = document.createElement('input');
+                toggleDeleteBlocked.type = 'checkbox';
+                toggleDeleteBlocked.name = 'toggleDeleteBlocked';
+                toggleDeleteBlocked.id = 'toggleDeleteBlocked';
+                // Attach the event listener to call the desired function
+                toggleDeleteBlocked.addEventListener('click', function() {
+                    var toggleCheckbox = document.getElementById("toggleDeleteBlocked");
+                    var btn = document.getElementById("deleteblocked");
+                    btn.disabled = ! toggleCheckbox.checked;
+                });
+                form.appendChild(toggleDeleteBlocked);
+
+                const label = document.createElement('label');
+                label.innerHTML = "Check to enable 'Delete Blocked'";
+                label.setAttribute('for', 'toggleDeleteBlocked');
+                form.appendChild(label);
+
+
+
+
+                const submitButton6 = document.createElement('input');
+                submitButton6.type = 'submit';
+                submitButton6.name = 'function';
+                submitButton6.id = 'updatenotes';
+                submitButton6.value = 'Update Notes';
+                submitButton6.style.backgroundColor = 'pink';
+                submitButton6.style.color = 'blue';
+                submitButton6.style.width = "130px";
+                submitButton6.style.borderRadius = '5px';
+                submitButton6.style.margin = "10px";
+                submitButton6.style.border = "2px solid red";
+
+                // Attach the event listener to call the desired function
+                submitButton6.addEventListener('mouseover', function() {
+                  changeToolTip(this,"show","Updates the notes you want to keep", "red");
+                });
+
+                // Attach the event listener to call the desired function
+                submitButton6.addEventListener('mouseleave', function() {
+                  changeToolTip(this,"hide");
+                });
+
+                form.appendChild(submitButton6);
+
+                document.body.appendChild(form);
+            })
+            .catch(error => console.error('Error:', error));
+      }
+    }
+
+    // Call the function when the page loads
+//    window.onload = fetchRequestsData;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,26 @@
+<html>
+    <body>
+        <center>
+            <p style="font-size:100px">&#128110;</p>
+            <h1>Sorry but you were not expected here!</h1>
+            <h1>I will send you back ;-)</h1>
+            <progress value='0' max='100' id='progressBar' style="width:200px"></progress>
+            <p style="font-size:100px">&#128075;</p>
+        </center>
+        <script>
+            // timeleft = max progress
+            var timeleft = 100;
+            var gobackTimer = setInterval(function(){
+            if(timeleft <= 0){
+              clearInterval(gobackTimer);
+              window.history.go(-1);
+            }
+            // value = max progress - timeleft
+            document.getElementById('progressBar').value = 100 - timeleft;
+            timeleft -= 1;
+            // 100 is 0.1 seconds
+            }, 50);
+            // total time = max progress * miliseconds
+        </script>
+    </body>
+</html>

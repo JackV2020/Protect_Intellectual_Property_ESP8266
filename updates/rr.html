@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>myWemosApp Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h2 {
+            text-align: center;
+        }
+        form {
+            width: 300px;
+            margin: 0 auto;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #bad;
+            color: blue;
+            border: none;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .radio-container {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+<script>
+    window.onload = () => {
+        // prevent copy paste into emailCheck
+        const myInput = document.getElementById('emailCheck');
+        myInput.onpaste = e => e.preventDefault(); 
+
+        // Function to set the first radio button as checked
+        function setFirstRadioButton() {
+            document.getElementById('registerYes').checked = true;
+            toggleFields(); // Call the toggleFields function to update the form based on the checked radio button
+        }
+
+        // Call the function when the window is loaded
+        setFirstRadioButton(); 
+        
+        // Function to handle pageshow event (navigation back)
+        function handlePageShow() {
+            setFirstRadioButton(); // Set the first radio button when the page is shown
+        }
+
+        // Add event listener for pageshow
+        window.addEventListener('pageshow', handlePageShow);
+    }
+</script>
+
+</head>
+
+<body>
+
+    <h2>myWemosApp Registration</h2>
+
+    <form action="./tool1.php" method="POST">
+
+        <div class="radio-container">
+            <label for="registerYes">
+                Registration
+                <input type="radio" id="registerYes" name="radiofunc" value="register" checked onchange="toggleFields()">
+            </label>
+
+            <label for="updateYes">
+                Update
+                <input type="radio" id="updateYes" name="radiofunc" value="update" onchange="toggleFields()">
+            </label>
+
+            <label for="Key Info">
+                Key Info
+                <input type="radio" id="keyInfo" name="radiofunc" value="getKey" onchange="toggleFields()">
+            </label>
+        </div>
+
+        <label for="mac">Wemos MAC:</label>
+        <input type="text" id="mac" name="mac" pattern="([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}" title="MAC address like AA:AA:AA:AA:AA:AA" placeholder="AA:AA:AA:AA:AA:AA" required>
+
+        <script>
+            const urlParams = new URLSearchParams(window.location.search);
+            const defaultValue = urlParams.get('mac');
+            const pattern = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
+            if (pattern.test(defaultValue)) {
+                document.getElementById("mac").value = defaultValue;
+                document.getElementById("mac").readOnly = true;
+            }
+        </script>
+
+        <label for="email">Email:</label>
+        <input type="text" id="email" name="email" pattern="[%+\-.0-9A-Z_a-z]{1,}@[\-0-9A-Za-z]{1,}([.][\-0-9A-Za-z]{1,}){1,}" title="Email address like you@provider.com" placeholder="you@provider.com" required>
+
+        <div id="emailCheckDiv">
+            <label for="emailCheck">Email check:</label>
+            <input type="text" id="emailCheck" name="emailCheck" title="Please type the same email address" required>
+
+            <script>
+                var emailCheckInput = document.getElementById('emailCheck');
+                emailCheckInput.addEventListener('blur', function () {
+                    var fieldOneValue = document.getElementById('email').value;
+                    var fieldTwoValue = this.value;
+                    if (fieldOneValue !== fieldTwoValue) {
+                        alert('Email address >' + fieldTwoValue + '< does not match >' + fieldOneValue + '< !');
+                        this.value = ""; // Clear the second field
+                    }
+                });
+            </script>
+        </div>
+
+        <div id="supplierDiv">
+            <label for="supplier">Shop name, address, phone etc.:</label>
+            <input type="text" id="supplier" name="supplier" placeholder="A Shop, Line 55, York, x@y.com" title="Details to know supplier" required>
+            <label for="supplier">(When something seems wrong we send you this info so you know who to contact)</label>
+        </div>
+
+        <div id="keydiv" hidden>
+            <label for="key">Key:</label>
+            <input type="text" id="key" name="key" placeholder="l54VfBa0TD">
+        </div>
+
+        <input type="hidden" id="appname" name="appname" value="myWemosApp">
+
+        <input type="hidden" id="function" name="function" value="register">
+
+        <input type="submit" id="submitButton" value="Register">
+
+    </form>
+
+    <script>
+        function toggleFields() {
+            var emailCheckDiv = document.getElementById('emailCheckDiv');
+            var supplierDiv = document.getElementById('supplierDiv');
+            var keyDiv = document.getElementById('keydiv');
+
+            var emailField = document.getElementById('email');
+            var emailCheckField = document.getElementById('emailCheck');
+            var supplierField = document.getElementById('supplier');
+            var keyField = document.getElementById('key');
+
+            var functionField = document.getElementById('function');
+            var submitButton = document.getElementById('submitButton');
+
+            emailCheckField.value = '';
+
+            if (document.getElementById('registerYes').checked) {
+                emailCheckDiv.style.display = 'block';
+                supplierDiv.style.display = 'block';
+                keyDiv.style.display = 'none';
+
+                emailCheckField.required = true;
+                supplierField.required = true;
+                keyField.required = false;
+
+                functionField.value="register";
+                submitButton.value="Register";
+            }
+            if (document.getElementById('updateYes').checked) {
+                emailCheckDiv.style.display = 'block';
+                supplierDiv.style.display = 'none';
+                keyDiv.style.display = 'block';
+
+                emailCheckField.required = true;
+                supplierField.required = false;
+                keyField.required = true;
+
+                functionField.value="update";
+                submitButton.value="Update";
+            }
+            if (document.getElementById('keyInfo').checked) {
+                emailCheckDiv.style.display = 'none';
+                supplierDiv.style.display = 'none';
+                keyDiv.style.display = 'none';
+
+                emailCheckField.required = false;
+                supplierField.required = false;
+                keyField.required = false;
+
+                functionField.value="Get Key Info"
+                submitButton.value="Get Key Info";
+            }
+        }
+
+    </script>
+</body>
+
+</html>

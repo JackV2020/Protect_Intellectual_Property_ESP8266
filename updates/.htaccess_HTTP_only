@@ -1,0 +1,41 @@
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+    #
+    # The root folder for rewrites is the folder of the .htaccess
+    #
+
+    RewriteBase /
+
+    #
+    # Default is to deny access to everything
+    #
+
+    <Files "*">
+        Order Deny,Allow
+        Deny from all
+    </Files>
+
+    #
+    # Allow access to tool1.php, all html files and our favicon.ico
+    #
+
+    <FilesMatch "^(tool1\.php|.+\.html|favicon\.ico)$">
+        Order Allow,Deny
+        Allow from all
+    </FilesMatch>
+
+    #
+    # Redirect all forbidden files to index.html
+    #
+
+    ErrorDocument 403 /updates/index.html
+
+    #
+    # Redirect all not found to index.html
+    #
+
+    ErrorDocument 404 /updates/index.html
+
+</IfModule>

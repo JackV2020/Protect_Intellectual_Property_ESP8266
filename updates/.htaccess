@@ -1,0 +1,87 @@
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+    #
+    # The root folder for rewrites is the folder of the .htaccess
+    #
+
+    RewriteBase /
+
+    #
+    # Default is to deny access to everything
+    #
+
+    <Files "*">
+        Order Deny,Allow
+        Deny from all
+    </Files>
+
+    #
+    # Allow access to tool1.php, all html files and our favicon.ico
+    #
+
+    <FilesMatch "^(tool1\.php|.+\.html|favicon\.ico)$">
+        Order Allow,Deny
+        Allow from all
+    </FilesMatch>
+
+    #
+    # Redirect all forbidden files to index.html
+    #
+
+    ErrorDocument 403 /index.html
+
+    #
+    # Redirect all not found to index.html
+    #
+
+    ErrorDocument 404 /index.html
+
+    #
+    # Now only tool1.php and valid html pages can be accessed
+    #
+    # We want to allow http access only for tool1.php because ESP8266 needs it
+    #
+    # And we want to require HTTPS for html pages.
+    #
+    # My apache server runs on port 443
+    # I forwarded port 445 to port 443
+    #
+    # So Internet access has to be forwarded to index.html on port 445
+    # And LAN access to index.html on port 443
+    #
+    # REMOTE_ADDR is used to differentiate between Internet and LAN access
+    #
+    # I suppose your LAN addresses start with 192.168.
+    # When you have something else you need to change 2 RewriteCond lines below 
+    #
+
+    # Require HTTPS for html access from the Internet but not for tool1.php
+
+    RewriteCond %{HTTPS} off
+    RewriteCond %{REQUEST_URI} !/tool1\.php$
+    RewriteCond %{REMOTE_ADDR} !^192\.168\.
+    RewriteRule ^ https://%{SERVER_NAME}:445/index.html [L,R=301]
+
+    # Require HTTPS for html access from the LAN but not for tool1.php
+
+    RewriteCond %{HTTPS} off
+    RewriteCond %{REQUEST_URI} !/tool1\.php$
+    RewriteCond %{REMOTE_ADDR} ^192\.168\.
+    RewriteRule ^ https://%{SERVER_NAME}:443/index.html [L,R=301]
+
+    #
+    # Redirect html's in subfolders to tool1 in the root folder
+    #
+    # The QSA flag appends the original query string to the new URL.
+    # The 307 status code indicates a temporary redirect and should
+    # preserve the method and the body of the original request.
+    # L means this is the last rule to be processed.
+    #
+
+    RewriteCond %{HTTPS} on
+    RewriteCond %{REQUEST_URI} ^/[^/]+/tool1\.php$
+    RewriteRule ^ /tool1.php [QSA,R=307,L]
+
+</IfModule>
