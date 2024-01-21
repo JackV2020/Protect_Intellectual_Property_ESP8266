@@ -8,14 +8,17 @@ To install and use this tool you need to do something:
 
 - You setup this tool on a Raspberry Pi (3,4,5,... ) with Apache, php and sqlite.
 - Put something extra in your application. (Working examples available in the inos folder)
-- Import the bin file with a single click into verions management of this tool.
+- Import the bin file of your app with a single click into verions management of this tool.
+
+That's all. 
 
 - Send ESP8266's with any version of your app to new buyers. 
-- To guarantee that the app runs in full mode and receives updates the customer need to register after which it is accepted.
-    - during registration the customer receives a mail with a link which needs to be clicked to confirm the registration after which you can accept.
-    - acceptance can be automatic, you can also change a setting so you can accept manually.
+- To guarantee that the app runs in full mode and receives updates the customer needs to register after which it is accepted.
+    - during registration the customer receives a mail with a link which needs to be clicked to confirm the registration.
+    - after confirmation the request needs to be accepted so it is known as a 'welcome copy'.
+    - you can change a setting so you do not need to accept manually.
 
-All you really need to do is every time you create a new app or version you import the bin file with a single click and selct a setting.
+And of course every time you create a new app or new version you import the bin file with a single click and select a setting.
 
 - Every version has a setting to control the run mode of all the apps with that version.
     - The default setting of each version is to let all apps out there run in full mode and only accepted will receive updates.
