@@ -96,6 +96,13 @@ form {
     }
 </style>
     <script>
+        // After we are directed back by tool1.php we want to refresh the screen
+        function handlePageShow() {
+            fetchSystemInfo();
+        }
+
+        // Add event listener for pageshow
+        window.addEventListener('pageshow', handlePageShow);
 
         // Global variable to store the password
         var passwordValue = '';
@@ -160,6 +167,15 @@ form {
 </head>
 
 <body>
+    <select name="menu" id="select_page" onchange="gotoPage(this.value);">
+        <option value="Menu" selected>Menu</option>
+        <option value="ms.html">ms.html</option>
+        <option value="mr.html">mr.html</option>
+        <option value="mv.html">mv.html</option>
+        <option value="md.html">md.html</option>
+        <option value="mu.html">mu.html</option>
+        <option value="si.html">si.html</option>
+    </select>
 
     <h2>System Information</h2>
 
@@ -209,6 +225,20 @@ form {
                 }
             }
         });
+    </script>
+
+    <script>
+        const passwordc = document.cookie.split(';').find(cookie => cookie.includes('passwordc')).split('=')[1];
+        if (passwordc) {
+            document.getElementById("password").value = passwordc;
+        }
+        function gotoPage(new_page) {
+            if (new_page != "Menu") {
+                const passwordc = document.getElementById("password").value;
+                document.cookie = `passwordc=${passwordc}; SameSite=None; Secure`;
+                window.location.href = new_page;
+            }
+        }
     </script>
 
 </body>

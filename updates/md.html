@@ -78,6 +78,15 @@
     <title>Manage Downloads</title>
 </head>
 <body>
+    <select name="menu" id="select_page" onchange="gotoPage(this.value);">
+        <option value="Menu" selected>Menu</option>
+        <option value="ms.html">ms.html</option>
+        <option value="mr.html">mr.html</option>
+        <option value="mv.html">mv.html</option>
+        <option value="md.html">md.html</option>
+        <option value="mu.html">mu.html</option>
+        <option value="si.html">si.html</option>
+    </select>
 
 <h2>Manage Downloads</h2>
 
@@ -233,7 +242,6 @@
             + '&order=' + encodeURIComponent(orderValue)
             + '&offset=' + offset 
             + '&count=' + nr_records_to_show ;
-            console.log(url);
         // AJAX request to getRequests function
         fetch(url)
             .then(response => response.json())
@@ -443,6 +451,19 @@
     // Call the function when the page loads
 //    window.onload = fetchDownloadsData;
 </script>
+    <script>
+        const passwordc = document.cookie.split(';').find(cookie => cookie.includes('passwordc')).split('=')[1];
+        if (passwordc) {
+            document.getElementById("password").value = passwordc;
+        }
+        function gotoPage(new_page) {
+            if (new_page != "Menu") {
+                const passwordc = document.getElementById("password").value;
+                document.cookie = `passwordc=${passwordc}; SameSite=None; Secure`;
+                window.location.href = new_page;
+            }
+        }
+    </script>
 
 </body>
 </html>

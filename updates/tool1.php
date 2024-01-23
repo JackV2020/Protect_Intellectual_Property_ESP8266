@@ -40,6 +40,10 @@ $myPublicIP4 = getPublicIPv4();
 // Used to determine who accesses so we can compare with the exceptions
 $publicip = $_SERVER['REMOTE_ADDR']; // the public ip of the client
 
+$itsme = ( $publicip == $myPublicIP4 ) || (stripos($mylaptopip,$publicip) != false );
+
+my_log("itsme : >" . $itsme . "<");
+
 // ------------------- Check if we need the web form OR download section
 
     if (isset($_GET['function']) || isset($_POST['function'])) {
@@ -52,7 +56,7 @@ $publicip = $_SERVER['REMOTE_ADDR']; // the public ip of the client
 
 // --------------------------------------------- Handle Maintenance Mode
 
-        if ( ( $maintenancemode) && ( $publicip != $myPublicIP4 ) && (stripos($mylaptopip,$publicip) === false ) ) {
+        if ( ( $maintenancemode) && ( ! $itsme ) ) {
 //        if ( $maintenancemode) {  // I use this to test real maintenenace mode for myself
             my_log("------------ '$functionName' maintenance mode ------------ $publicip");
             go_back("Sorry","Maintenance mode is active",5);
@@ -79,7 +83,7 @@ $publicip = $_SERVER['REMOTE_ADDR']; // the public ip of the client
                 $date = date("Y-m-d"); // get date yyyy-mm-dd
                 $lastdate = substr(getLastDate($publicip),0,10);
                 $title="<title>Registration...</title>";
-                if ( ( $date != $lastdate) || ( $publicip == $myPublicIP4 ) || (stripos($mylaptopip,$publicip) !== false ) ) {
+                if ( ( $date != $lastdate) || ( $itsme ) ) {
                     $result = register($mac, $publicip, $email, $appname, $supplier);
                     echo $title . $result;
                 } else {
@@ -466,7 +470,7 @@ HTTP_X_ESP8266_VERSION = 'optional current version string here
             
             if ( ($limit_mode == "full_update" ) || ($macstatus == "accepted") ) { // we may download
                 
-                if ( ( $maintenancemode) && ( $publicip != $myPublicIP4 ) && (stripos($mylaptopip,$publicip) === false ) ) {
+                if ( ( $maintenancemode) && ( ! $itsme ) ) {
 //                if ( $maintenancemode) {  // I use this to test real maintenenace mode for myself
                     my_log("------------ maintenance mode ------------ $myPublicIP4 .. $publicip .. $mylaptopip");
                     header($_SERVER["SERVER_PROTOCOL"].' 304 Not Modified', true, 304);
@@ -1056,7 +1060,7 @@ function confirmUpdate($mac, $key) {
 
 function backupSystem($pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         $backup_location = getSettingsField('backup_location');
         $backup_type = getSettingsField('backup_type');
         $backup_versions = getSettingsField('backup_versions');
@@ -1068,7 +1072,7 @@ function backupSystem($pwd) {
 // Remove lock so database can be written again
         return $output;
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to backup";
     }
 }
 
@@ -1172,7 +1176,7 @@ function getSystemInfook($pwd) {
 
 function updatemailondownload($selectedRows, $pwd, $status) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         $GLOBALS["db"]->exec('BEGIN IMMEDIATE'); // wait until database lock is free
         foreach ($selectedRows as $mac) {
             $dbQuery = "UPDATE requests SET mailondownload = '$status' WHERE mac = '$mac'";
@@ -1181,14 +1185,14 @@ function updatemailondownload($selectedRows, $pwd, $status) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, changed to $status";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to update";
     }
 }
 
 // ---------------------------------------- Delete selected from requests
 
 function deleteBlocked($selectedRows, $pwd) {
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         $countdeleted = 0;
         $countskipped = 0;
         $GLOBALS["db"]->exec('BEGIN IMMEDIATE'); // wait until database lock is free
@@ -1207,14 +1211,14 @@ function deleteBlocked($selectedRows, $pwd) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, deleted $countdeleted 'blocked' requests and skipped $countskipped";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to delete";
     }
 }
 
 // ---------------------------------------- Delete Unregistered
 
 function deleteUnregistered($selectedRows, $pwd) {
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         $countdeleted = 0;
         $countskipped = 0;
         $GLOBALS["db"]->exec('BEGIN IMMEDIATE'); // wait until database lock is free
@@ -1233,7 +1237,7 @@ function deleteUnregistered($selectedRows, $pwd) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, deleted $countdeleted 'unregistered'";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to delete";
     }
 }
 
@@ -1241,7 +1245,7 @@ function deleteUnregistered($selectedRows, $pwd) {
 
 function manageRequests($functionName, $selectedRows, $macs, $newnotes, $pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
 
         switch ($functionName) {
             case "Register Selected":
@@ -1283,7 +1287,7 @@ function manageRequests($functionName, $selectedRows, $macs, $newnotes, $pwd) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, $count updates";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed : $functinName";
     }
 }
 
@@ -1356,7 +1360,7 @@ function getDownloads($offset, $count, $pwd, $filter, $filterValue, $reverse, $o
 
 function deleteDownloads($selectedRows, $datedownloads, $macs, $pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         // Combine $datedownloads with $macs using a loop
         $dataToDelete = array();
         foreach ($datedownloads as $index => $datedownload) {
@@ -1380,7 +1384,7 @@ function deleteDownloads($selectedRows, $datedownloads, $macs, $pwd) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, deleted $count downloads";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to delete";
     }
 }
 
@@ -1388,7 +1392,8 @@ function deleteDownloads($selectedRows, $datedownloads, $macs, $pwd) {
 
 function saveSettings($settings, $values, $pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
+
         for ($x = 0; $x < count($settings); $x++) {
             $setting = $settings[$x];
             $value = $values[$x];
@@ -1402,7 +1407,7 @@ function saveSettings($settings, $values, $pwd) {
 
         return "Oke, saved settings";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to save data";
     }
 }
 
@@ -1410,7 +1415,7 @@ function saveSettings($settings, $values, $pwd) {
 
 function updateVersions($selectedRows, $md5s, $newappnames, $newlimit_modes, $newnotes, $pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         // Combine md5s with newappnames and newnotes using a loop
         $dataToUpdate = array();
         foreach ($md5s as $index => $md5) {
@@ -1449,7 +1454,7 @@ function updateVersions($selectedRows, $md5s, $newappnames, $newlimit_modes, $ne
             return "Oke (app renaming is disabled)";
         }
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to update versions";
     }
 }
 
@@ -1457,7 +1462,7 @@ function updateVersions($selectedRows, $md5s, $newappnames, $newlimit_modes, $ne
 
 function deleteVersions($selectedRows, $md5s, $pwd) {
 
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
+    if ( ($pwd == $GLOBALS["mgmtpwd"]) && ( $GLOBALS["itsme"] ) ) {
         $count = 0;
         $GLOBALS["db"]->exec('BEGIN IMMEDIATE'); // wait until database lock is free
         foreach ($selectedRows as $index => $md5) {
@@ -1468,7 +1473,7 @@ function deleteVersions($selectedRows, $md5s, $pwd) {
         $GLOBALS["db"]->exec('COMMIT TRANSACTION');
         return "Oke, deleted $count verions";
     } else {
-        return "ERROR";
+        return "ERROR, Not allowed to delete versions";
     }
 }
 
@@ -1508,7 +1513,7 @@ function getSettings($pwd) {
 
     if ($pwd == $GLOBALS["mgmtpwd"]) {
 
-        if ( ( $GLOBALS["publicip"] != $GLOBALS["myPublicIP4"] ) && (stripos($GLOBALS["mylaptopip"],$GLOBALS["publicip"]) === false ) ) {
+        if ( ! $GLOBALS["itsme"] ) {
             $dbQuery = "SELECT * FROM settings where setting not like 'email%'";
         } else {
             $dbQuery = "SELECT * FROM settings";
@@ -1517,23 +1522,6 @@ function getSettings($pwd) {
         $result = $GLOBALS["db"]->query($dbQuery);
         $data = array();
 
-        while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
-            $data[] = $row;
-        }
-        return json_encode($data);
-    } else {
-        return "Error";
-    }
-}
-
-function getSettingsold($pwd) {
-
-    if ($pwd == $GLOBALS["mgmtpwd"]) {
-
-        $dbQuery = "SELECT * FROM settings";
-        $result = $GLOBALS["db"]->query($dbQuery);
-
-        $data = array();
         while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
             $data[] = $row;
         }

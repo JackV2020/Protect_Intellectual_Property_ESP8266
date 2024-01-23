@@ -52,6 +52,7 @@ function handleInputChange(inputField) {
 
 // After we are directed back by tool1.php we want to refresh the screen
     function handlePageShow() {
+//        document.getElementById('menu').selectedIndex = 0;
 //        document.getElementById('nr_rows').selectedIndex = 3;
 //        document.getElementById('status').selectedIndex = 0;
 //        document.getElementById('filter').selectedIndex = 0;
@@ -88,6 +89,15 @@ function handleInputChange(inputField) {
     <title>Manage Requests</title>
 </head>
 <body>
+    <select name="menu" id="select_page" onchange="gotoPage(this.value);">
+        <option value="Menu" selected>Menu</option>
+        <option value="ms.html">ms.html</option>
+        <option value="mr.html">mr.html</option>
+        <option value="mv.html">mv.html</option>
+        <option value="md.html">md.html</option>
+        <option value="mu.html">mu.html</option>
+        <option value="si.html">si.html</option>
+    </select>
 
 <h2>Manage Requests</h2>
 
@@ -597,6 +607,19 @@ function handleInputChange(inputField) {
     // Call the function when the page loads
 //    window.onload = fetchRequestsData;
 </script>
+    <script>
+        const passwordc = document.cookie.split(';').find(cookie => cookie.includes('passwordc')).split('=')[1];
+        if (passwordc) {
+            document.getElementById("password").value = passwordc;
+        }
+        function gotoPage(new_page) {
+            if (new_page != "Menu") {
+                const passwordc = document.getElementById("password").value;
+                document.cookie = `passwordc=${passwordc}; SameSite=None; Secure`;
+                window.location.href = new_page;
+            }
+        }
+    </script>
 
 </body>
 </html>
